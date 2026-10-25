@@ -24,6 +24,12 @@ npm install /absolute/path/to/nova-ai-node-red
 
 Restart Node-RED after installing.
 
+### Install a release archive
+
+Download the **Node-RED palette package (.tgz)** asset from [GitHub Releases](https://github.com/Datalab-Rotterdam/nova-ai-node-red/releases/latest). Its filename is `datalabrotterdam-nova-ai-node-red-<version>.tgz`. In Node-RED, open **Manage palette**, choose the module upload option, and select the downloaded file. This archive contains the packaged nodes and examples; choose it instead of GitHub's automatically generated source-code ZIP or tar.gz downloads.
+
+You can also install the archive with `npm install /path/to/datalabrotterdam-nova-ai-node-red-<version>.tgz` in the Node-RED user directory, then restart Node-RED. This works while a new package is still propagating to the editor's community catalog.
+
 ## Your first reply
 
 1. Choose **Import → Examples → @datalabrotterdam/nova-ai-node-red → 01-first-chat**.
@@ -136,6 +142,8 @@ The runtime has no npm dependencies and uses Node.js fetch, FormData, Blob, and 
 ## Release instructions
 
 Releases use the same semantic-release pattern as [nova-ai-cli](https://github.com/Datalab-Rotterdam/nova-ai-cli/blob/main/.github/workflows/ci.yml). The workflow in `.github/workflows/ci.yml` tests Node.js 22 and 24, regenerates the editor and examples, checks generated files, and inspects the package before publishing.
+
+Every new release also creates a GitHub Release with release notes and the installable npm `.tgz` attached. The npm plugin writes the versioned archive to `release-assets/` after setting the release version, and the GitHub plugin uploads that file. Generated archives are excluded from Git. The release job's existing `contents: write` permission allows release creation and asset uploads.
 
 On a push to `main`, semantic-release analyzes conventional commit messages, publishes to npm, creates a version tag, and commits the updated package files and changelog. Pushes to `alpha` publish prereleases under npm's `alpha` tag. Pull requests and other branches only run checks. A manual workflow run only runs checks. `fix:` commits produce patches, `feat:` commits produce minor releases, and breaking changes produce major releases. The first release starts at 1.0.0 when no earlier release tag exists; the version in package.json does not seed semantic-release's first version. Subsequent versions are managed automatically.
 
