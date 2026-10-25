@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Datalab-Rotterdam/nova-ai-node-red/compare/v1.0.0...v1.0.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* publish under the nova-ai-node-red package name ([301b43c](https://github.com/Datalab-Rotterdam/nova-ai-node-red/commit/301b43c809a4d0d4909a5a3a60df3c85ab429727))
+
 # 1.0.0 (2026-10-25)
 
 
