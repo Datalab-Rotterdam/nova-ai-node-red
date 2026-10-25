@@ -1,6 +1,6 @@
 {
   "name": "@datalabrotterdam/node-red-nova-ai",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "description": "Beginner-friendly Node-RED nodes for the Nova AI REST API",
   "license": "MIT",
   "author": "Datalab Rotterdam",
