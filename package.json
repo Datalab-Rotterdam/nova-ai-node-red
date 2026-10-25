@@ -36,6 +36,8 @@
     "LICENSE"
   ],
   "scripts": {
+    "build": "npm run build:editor && npm run build:examples",
+    "release": "semantic-release",
     "test": "node --test",
     "build:editor": "node scripts/build-editor.js",
     "build:examples": "node scripts/build-examples.js"
@@ -44,9 +46,15 @@
     "access": "public"
   },
   "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/npm": "^13.2.0",
+    "@semantic-release/release-notes-generator": "^14.1.1",
     "jquery": "^3.7.1",
     "jsdom": "^26.1.0",
     "node-red": "^4.1.17",
-    "node-red-node-test-helper": "^0.3.6"
+    "node-red-node-test-helper": "^0.3.6",
+    "semantic-release": "^25.0.9"
   }
 }
