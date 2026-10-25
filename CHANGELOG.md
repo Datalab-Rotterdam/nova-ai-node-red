@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/Datalab-Rotterdam/nova-ai-node-red/compare/v1.2.0...v1.2.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* accept JSON audio text responses ([00ffb13](https://github.com/Datalab-Rotterdam/nova-ai-node-red/commit/00ffb1373cc9d2591635416af145584ae90590e9))
+
 # [1.2.0](https://github.com/Datalab-Rotterdam/nova-ai-node-red/compare/v1.1.0...v1.2.0) (2026-10-25)
 
 
