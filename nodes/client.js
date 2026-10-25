@@ -95,7 +95,7 @@ async function request(connection, path, options = {}) {
         if (!options.binary && !options.text && !/\bjson\b/i.test(contentType)) fail('Nova returned an unexpected content type. Check the connection URL and model.');
         if (options.binary && data instanceof Blob) data = Buffer.from(await data.arrayBuffer());
         if (options.binary && !/^(audio\/|application\/octet-stream)/i.test(contentType)) fail('Nova did not return audio. Check the speech model and format.');
-        if (options.text && typeof data !== 'string') fail('Nova returned an unexpected content type. Check the connection URL and model.');
+        if (options.text && !/\bjson\b/i.test(contentType) && typeof data !== 'string') fail('Nova returned an unexpected content type. Check the connection URL and model.');
         return { response: data, status: lastResponse?.status || 200, contentType };
     } catch (error) {
         if (controller.signal.aborted) fail(timedOut ? 'Nova timed out. Increase the connection timeout or try a faster model.' : 'Nova request was cancelled because the node closed.');
