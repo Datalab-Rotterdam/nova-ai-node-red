@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/Datalab-Rotterdam/nova-ai-node-red/compare/v1.0.1...v1.1.0) (2026-10-25)
+
+
+### Features
+
+* attach installable tgz archives to GitHub releases ([2fc9139](https://github.com/Datalab-Rotterdam/nova-ai-node-red/commit/2fc91395866fc9277a2c2c0223a08495d831eba8))
+
 ## [1.0.1](https://github.com/Datalab-Rotterdam/nova-ai-node-red/compare/v1.0.0...v1.0.1) (2026-10-25)
 
 
