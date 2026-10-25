@@ -1,0 +1,126 @@
+[
+  {
+    "id": "nova-audio-example",
+    "type": "tab",
+    "label": "Nova: audio Buffer",
+    "disabled": false,
+    "info": "Configure the Nova connection, deploy, select your model, and deploy again. No API key is included."
+  },
+  {
+    "id": "nova-audio-example-connection",
+    "type": "nova-connection",
+    "name": "My Nova account",
+    "baseUrl": "https://api.nova.datalabrotterdam.nl/v1",
+    "timeout": 120,
+    "configId": ""
+  },
+  {
+    "id": "audio-guide",
+    "type": "comment",
+    "z": "nova-audio-example",
+    "name": "Set File in to your recording; add Nova key and choose a transcription model.",
+    "x": 400,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "audio-inject",
+    "type": "inject",
+    "z": "nova-audio-example",
+    "name": "Transcribe recording",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "payload": "",
+    "payloadType": "date",
+    "once": false,
+    "x": 150,
+    "y": 160,
+    "wires": [
+      [
+        "audio-file"
+      ]
+    ]
+  },
+  {
+    "id": "audio-file",
+    "type": "file in",
+    "z": "nova-audio-example",
+    "name": "Choose an audio file",
+    "filename": "",
+    "filenameType": "str",
+    "format": "",
+    "chunk": false,
+    "sendError": false,
+    "allProps": false,
+    "x": 380,
+    "y": 160,
+    "wires": [
+      [
+        "audio-node"
+      ]
+    ]
+  },
+  {
+    "id": "audio-node",
+    "type": "nova-transcription",
+    "z": "nova-audio-example",
+    "name": "",
+    "connection": "nova-audio-example-connection",
+    "model": "",
+    "language": "",
+    "response_format": "",
+    "x": 610,
+    "y": 160,
+    "wires": [
+      [
+        "audio-debug"
+      ]
+    ]
+  },
+  {
+    "id": "audio-debug",
+    "type": "debug",
+    "z": "nova-audio-example",
+    "name": "Transcript",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 830,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "audio-catch",
+    "type": "catch",
+    "z": "nova-audio-example",
+    "scope": [
+      "audio-node",
+      "audio-file"
+    ],
+    "uncaught": false,
+    "x": 600,
+    "y": 240,
+    "wires": [
+      [
+        "audio-error"
+      ]
+    ]
+  },
+  {
+    "id": "audio-error",
+    "type": "debug",
+    "z": "nova-audio-example",
+    "name": "Audio error",
+    "active": true,
+    "tosidebar": true,
+    "complete": "error.message",
+    "targetType": "msg",
+    "x": 830,
+    "y": 240,
+    "wires": []
+  }
+]

@@ -1,0 +1,8 @@
+node_modules/
+.reference/
+*.tgz
+.node-red-test/
+.env
+.env.*
+!.env.example
+npm-debug.log*

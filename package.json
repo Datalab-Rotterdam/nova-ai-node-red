@@ -1,0 +1,52 @@
+{
+  "name": "@datalabrotterdam/node-red-nova-ai",
+  "version": "0.1.2",
+  "description": "Beginner-friendly Node-RED nodes for the Nova AI REST API",
+  "license": "MIT",
+  "author": "Datalab Rotterdam",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Datalab-Rotterdam/nova-ai-node-red.git"
+  },
+  "homepage": "https://github.com/Datalab-Rotterdam/nova-ai-node-red#readme",
+  "bugs": {
+    "url": "https://github.com/Datalab-Rotterdam/nova-ai-node-red/issues"
+  },
+  "keywords": [
+    "node-red",
+    "nova",
+    "ai",
+    "chat",
+    "audio",
+    "embeddings"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "node-red": {
+    "version": ">=4.0.0",
+    "nodes": {
+      "nova": "nodes/nova.js"
+    }
+  },
+  "files": [
+    "nodes/",
+    "examples/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "build:editor": "node scripts/build-editor.js",
+    "build:examples": "node scripts/build-examples.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "jquery": "^3.7.1",
+    "jsdom": "^26.1.0",
+    "node-red": "^4.1.17",
+    "node-red-node-test-helper": "^0.3.6"
+  }
+}

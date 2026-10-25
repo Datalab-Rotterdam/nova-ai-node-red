@@ -1,0 +1,153 @@
+[
+  {
+    "id": "nova-example-06-translate-audio",
+    "type": "tab",
+    "label": "Nova: translate audio",
+    "disabled": false,
+    "info": "# translate audio\n\n1. Open the Nova node and select an existing Nova connection, or add your API key to the included connection. Save and deploy.\n2. Reopen the Nova node and choose a compatible model, then deploy again.\n3. Set File in to an audio recording on the Node-RED server. In Docker, use a container path such as /data/recording.wav, not a Windows host path. File in returns a single Buffer. Click Translate recording. Read Translated transcript in the Debug sidebar.\n\nChoose a recording in File in. Translation language and supported formats depend on the model.\n\nThe Full Nova result debug node is disabled by default; enable it to inspect msg.nova.response, status, and contentType. Catch shows errors and next actions. Nothing runs automatically on deploy. No API key is included."
+  },
+  {
+    "id": "nova-example-06-translate-audio-connection",
+    "type": "nova-connection",
+    "name": "My Nova account",
+    "baseUrl": "https://api.nova.datalabrotterdam.nl/v1",
+    "timeout": 120,
+    "configId": ""
+  },
+  {
+    "id": "nova-example-06-translate-audio-guide",
+    "type": "comment",
+    "z": "nova-example-06-translate-audio",
+    "name": "Add connection → deploy → choose model if needed → deploy → click Inject. See flow Info for details.",
+    "info": "# translate audio\n\n1. Open the Nova node and select an existing Nova connection, or add your API key to the included connection. Save and deploy.\n2. Reopen the Nova node and choose a compatible model, then deploy again.\n3. Set File in to an audio recording on the Node-RED server. In Docker, use a container path such as /data/recording.wav, not a Windows host path. File in returns a single Buffer. Click Translate recording. Read Translated transcript in the Debug sidebar.\n\nChoose a recording in File in. Translation language and supported formats depend on the model.\n\nThe Full Nova result debug node is disabled by default; enable it to inspect msg.nova.response, status, and contentType. Catch shows errors and next actions. Nothing runs automatically on deploy. No API key is included.",
+    "x": 520,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "nova-example-06-translate-audio-note",
+    "type": "comment",
+    "z": "nova-example-06-translate-audio",
+    "name": "Choose a recording in File in. Translation language and supported formats depend on the model.",
+    "x": 520,
+    "y": 110,
+    "wires": []
+  },
+  {
+    "id": "nova-example-06-translate-audio-inject",
+    "type": "inject",
+    "z": "nova-example-06-translate-audio",
+    "name": "Translate recording",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "payload": "",
+    "payloadType": "str",
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "x": 160,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-06-translate-audio-file"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-06-translate-audio-file",
+    "type": "file in",
+    "z": "nova-example-06-translate-audio",
+    "name": "Choose a server audio file",
+    "filename": "",
+    "filenameType": "str",
+    "format": "",
+    "chunk": false,
+    "sendError": false,
+    "allProps": false,
+    "x": 400,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-06-translate-audio-node"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-06-translate-audio-node",
+    "type": "nova-translation",
+    "z": "nova-example-06-translate-audio",
+    "name": "",
+    "connection": "nova-example-06-translate-audio-connection",
+    "model": "",
+    "response_format": "",
+    "x": 650,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-06-translate-audio-debug",
+        "nova-example-06-translate-audio-full"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-06-translate-audio-debug",
+    "type": "debug",
+    "z": "nova-example-06-translate-audio",
+    "name": "Translated transcript",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 190,
+    "wires": []
+  },
+  {
+    "id": "nova-example-06-translate-audio-full",
+    "type": "debug",
+    "z": "nova-example-06-translate-audio",
+    "name": "Full Nova result (enable to inspect)",
+    "active": false,
+    "tosidebar": true,
+    "complete": "nova",
+    "targetType": "msg",
+    "x": 950,
+    "y": 250,
+    "wires": []
+  },
+  {
+    "id": "nova-example-06-translate-audio-catch",
+    "type": "catch",
+    "z": "nova-example-06-translate-audio",
+    "name": "Nova errors",
+    "scope": [
+      "nova-example-06-translate-audio-node",
+      "nova-example-06-translate-audio-file"
+    ],
+    "uncaught": false,
+    "x": 640,
+    "y": 330,
+    "wires": [
+      [
+        "nova-example-06-translate-audio-error"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-06-translate-audio-error",
+    "type": "debug",
+    "z": "nova-example-06-translate-audio",
+    "name": "Error and next action",
+    "active": true,
+    "tosidebar": true,
+    "complete": "error.message",
+    "targetType": "msg",
+    "x": 910,
+    "y": 330,
+    "wires": []
+  }
+]

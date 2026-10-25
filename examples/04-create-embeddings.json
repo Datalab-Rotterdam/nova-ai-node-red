@@ -1,0 +1,132 @@
+[
+  {
+    "id": "nova-example-04-create-embeddings",
+    "type": "tab",
+    "label": "Nova: create embeddings",
+    "disabled": false,
+    "info": "# create embeddings\n\n1. Open the Nova node and select an existing Nova connection, or add your API key to the included connection. Save and deploy.\n2. Reopen the Nova node and choose a compatible model, then deploy again.\n3. Click Embed two sentences. Read Two embedding vectors in the Debug sidebar.\n\nEach sentence becomes a list of numbers representing its meaning; similar text has similar vectors.\n\nThe Full Nova result debug node is disabled by default; enable it to inspect msg.nova.response, status, and contentType. Catch shows errors and next actions. Nothing runs automatically on deploy. No API key is included."
+  },
+  {
+    "id": "nova-example-04-create-embeddings-connection",
+    "type": "nova-connection",
+    "name": "My Nova account",
+    "baseUrl": "https://api.nova.datalabrotterdam.nl/v1",
+    "timeout": 120,
+    "configId": ""
+  },
+  {
+    "id": "nova-example-04-create-embeddings-guide",
+    "type": "comment",
+    "z": "nova-example-04-create-embeddings",
+    "name": "Add connection → deploy → choose model if needed → deploy → click Inject. See flow Info for details.",
+    "info": "# create embeddings\n\n1. Open the Nova node and select an existing Nova connection, or add your API key to the included connection. Save and deploy.\n2. Reopen the Nova node and choose a compatible model, then deploy again.\n3. Click Embed two sentences. Read Two embedding vectors in the Debug sidebar.\n\nEach sentence becomes a list of numbers representing its meaning; similar text has similar vectors.\n\nThe Full Nova result debug node is disabled by default; enable it to inspect msg.nova.response, status, and contentType. Catch shows errors and next actions. Nothing runs automatically on deploy. No API key is included.",
+    "x": 520,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "nova-example-04-create-embeddings-note",
+    "type": "comment",
+    "z": "nova-example-04-create-embeddings",
+    "name": "Each sentence becomes a list of numbers representing its meaning; similar text has similar vectors.",
+    "x": 520,
+    "y": 110,
+    "wires": []
+  },
+  {
+    "id": "nova-example-04-create-embeddings-inject",
+    "type": "inject",
+    "z": "nova-example-04-create-embeddings",
+    "name": "Embed two sentences",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "payload": "[\"A bicycle beside a canal.\",\"A bike parked by the water.\"]",
+    "payloadType": "json",
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "x": 160,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-04-create-embeddings-node"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-04-create-embeddings-node",
+    "type": "nova-embeddings",
+    "z": "nova-example-04-create-embeddings",
+    "name": "",
+    "connection": "nova-example-04-create-embeddings-connection",
+    "model": "",
+    "x": 440,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-04-create-embeddings-debug",
+        "nova-example-04-create-embeddings-full"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-04-create-embeddings-debug",
+    "type": "debug",
+    "z": "nova-example-04-create-embeddings",
+    "name": "Two embedding vectors",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 190,
+    "wires": []
+  },
+  {
+    "id": "nova-example-04-create-embeddings-full",
+    "type": "debug",
+    "z": "nova-example-04-create-embeddings",
+    "name": "Full Nova result (enable to inspect)",
+    "active": false,
+    "tosidebar": true,
+    "complete": "nova",
+    "targetType": "msg",
+    "x": 950,
+    "y": 250,
+    "wires": []
+  },
+  {
+    "id": "nova-example-04-create-embeddings-catch",
+    "type": "catch",
+    "z": "nova-example-04-create-embeddings",
+    "name": "Nova errors",
+    "scope": [
+      "nova-example-04-create-embeddings-node"
+    ],
+    "uncaught": false,
+    "x": 640,
+    "y": 330,
+    "wires": [
+      [
+        "nova-example-04-create-embeddings-error"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-04-create-embeddings-error",
+    "type": "debug",
+    "z": "nova-example-04-create-embeddings",
+    "name": "Error and next action",
+    "active": true,
+    "tosidebar": true,
+    "complete": "error.message",
+    "targetType": "msg",
+    "x": 910,
+    "y": 330,
+    "wires": []
+  }
+]

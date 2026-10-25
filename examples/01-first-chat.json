@@ -1,0 +1,108 @@
+[
+  {
+    "id": "nova-chat-example",
+    "type": "tab",
+    "label": "Nova: first chat",
+    "disabled": false,
+    "info": "Configure the Nova connection, deploy, select your model, and deploy again. No API key is included."
+  },
+  {
+    "id": "nova-chat-example-connection",
+    "type": "nova-connection",
+    "name": "My Nova account",
+    "baseUrl": "https://api.nova.datalabrotterdam.nl/v1",
+    "timeout": 120,
+    "configId": ""
+  },
+  {
+    "id": "chat-guide",
+    "type": "comment",
+    "z": "nova-chat-example",
+    "name": "1. Add API key in Chat → connection. 2. Deploy. 3. Pick model. 4. Deploy and click Inject.",
+    "x": 480,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "chat-inject",
+    "type": "inject",
+    "z": "nova-chat-example",
+    "name": "Say hello",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "payload": "Hello! Explain what you can help me with in one sentence.",
+    "payloadType": "str",
+    "repeat": "",
+    "once": false,
+    "x": 160,
+    "y": 160,
+    "wires": [
+      [
+        "chat-node"
+      ]
+    ]
+  },
+  {
+    "id": "chat-node",
+    "type": "nova-chat",
+    "z": "nova-chat-example",
+    "name": "",
+    "connection": "nova-chat-example-connection",
+    "model": "",
+    "temperature": "",
+    "max_tokens": "",
+    "x": 390,
+    "y": 160,
+    "wires": [
+      [
+        "chat-debug"
+      ]
+    ]
+  },
+  {
+    "id": "chat-debug",
+    "type": "debug",
+    "z": "nova-chat-example",
+    "name": "Assistant reply",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 620,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "chat-catch",
+    "type": "catch",
+    "z": "nova-chat-example",
+    "name": "Nova errors",
+    "scope": [
+      "chat-node"
+    ],
+    "uncaught": false,
+    "x": 390,
+    "y": 240,
+    "wires": [
+      [
+        "chat-errors"
+      ]
+    ]
+  },
+  {
+    "id": "chat-errors",
+    "type": "debug",
+    "z": "nova-chat-example",
+    "name": "Next action",
+    "active": true,
+    "tosidebar": true,
+    "complete": "error.message",
+    "targetType": "msg",
+    "x": 620,
+    "y": 240,
+    "wires": []
+  }
+]

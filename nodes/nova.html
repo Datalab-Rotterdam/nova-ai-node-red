@@ -1,0 +1,225 @@
+<script type="text/javascript">
+(function () {
+    'use strict';
+    var specs = [["chat","Chat","comments","Send text or an array of messages; receive assistant content.",["temperature","max_tokens"]],["response","Generate response","comment","Send text or input items; receive combined output text.",["temperature"]],["embeddings","Create embeddings","th","Turn text into lists of numbers for finding similar text.",["dimensions"]],["image","Generate image","picture-o","Describe an image; receive image objects with URLs or encoded data.",["size","imageCount"]],["transcription","Transcribe audio","microphone","Turn an audio Buffer into written text.",["language","response_format"]],["translation","Translate audio","language","Turn an audio Buffer into translated text.",["response_format"]],["speech","Generate speech","volume-up","Turn text into an audio Buffer.",["voice","response_format","speed"]],["speakers","Identify speakers","users","Find who spoke when in an audio Buffer; receive speaker segments.",[]],["models","Models","list","List one page of models or retrieve a model by identifier.",["limit","after"]],["providers","Providers","cloud","List available Nova providers.",[]],["voices","Voices","bullhorn","List available preset voices for a speech model.",[]]];
+    var aliases = {
+        chat: ['chat', 'chat.completions', 'chat_completion', 'text-generation'],
+        response: ['responses'], embeddings: ['embeddings', 'embedding'], image: ['images', 'image-generation', 'images.generate'],
+        transcription: ['transcription', 'audio.transcriptions', 'audio:transcribe'], translation: ['translation', 'audio.translations', 'audio:translate'],
+        speech: ['speech', 'tts', 'audio.speech', 'audio:synthesis'], speakers: ['diarization', 'audio.diarization']
+    };
+    // Unknown metadata is kept selectable: only recognized capability names justify exclusion.
+    function compatible(model, kind) {
+        var known = Object.keys(aliases).reduce(function (all, key) { return all.concat(aliases[key]); }, []);
+        var caps = Array.isArray(model.capabilities) ? model.capabilities : [];
+        return !aliases[kind] || !caps.some(function (cap) { return known.indexOf(cap) !== -1; }) || caps.some(function (cap) { return aliases[kind].indexOf(cap) !== -1; });
+    }
+    function discover(id, action) { return $.ajax({ url: 'nova-ai/connections/' + encodeURIComponent(id) + '/' + action, dataType: 'json', timeout: 125000 }); }
+    function errorText(xhr) { return xhr.responseJSON && xhr.responseJSON.error || 'Cannot reach Nova. Check your connection and try Refresh models again.'; }
+    RED.nodes.registerType('nova-connection', {
+        category: 'config', defaults: { name: { value: '' }, baseUrl: { value: 'https://api.nova.datalabrotterdam.nl/v1', required: true, validate: function (v) { return /^https?:\/\/\S+$/.test(v); } }, configId: { value: '' }, timeout: { value: 120, required: true, validate: function (v) { return Number(v) > 0 && Number(v) <= 2147483; } } },
+        credentials: { apiKey: { type: 'password' } },
+        label: function () { return this.name || 'Nova connection'; },
+        oneditprepare: function () {
+            var node = this;
+            $('#nova-test').on('click', function () {
+                var status = $('#nova-test-status'), button = $(this);
+                if (!node.id || node.changed || $('#node-config-input-apiKey').val() !== '__PWRD__' || $('#node-config-input-baseUrl').val() !== node.baseUrl || $('#node-config-input-configId').val() !== node.configId || String($('#node-config-input-timeout').val()) !== String(node.timeout)) {
+                    status.text('Save and deploy the connection, then reopen it to test.'); return;
+                }
+                button.prop('disabled', true); status.text('Testing connection…');
+                node._novaTest = discover(node.id, 'test').done(function (data) { status.text(data.message); }).fail(function (xhr) { if (xhr.statusText !== 'abort') status.text(errorText(xhr)); }).always(function () { button.prop('disabled', false); });
+            });
+        },
+        oneditcancel: function () { if (this._novaTest) this._novaTest.abort(); },
+        oneditsave: function () { if (this._novaTest) this._novaTest.abort(); }
+    });
+    specs.forEach(function (spec) {
+        var kind = spec[0], defaults = { name: { value: '' }, connection: { value: '', type: 'nova-connection', required: true } };
+        if (kind !== 'providers') defaults.model = { value: '', required: ['models', 'voices'].indexOf(kind) === -1 };
+        if (kind === 'models') defaults.operation = { value: 'list' };
+        spec[4].forEach(function (key) { defaults[key] = { value: '', validate: function (value) { if (value === '' || ['temperature', 'max_tokens', 'dimensions', 'imageCount', 'speed', 'limit'].indexOf(key) === -1) return true; var n = Number(value); return Number.isFinite(n) && (key === 'temperature' ? n >= 0 : n > 0) && (['max_tokens', 'dimensions', 'imageCount', 'limit'].indexOf(key) === -1 || Number.isInteger(n)); } }; });
+        RED.nodes.registerType('nova-' + kind, {
+            category: 'Nova AI', color: '#B8D8E8', defaults: defaults, inputs: 1, outputs: 1,
+            icon: 'font-awesome/fa-' + spec[2], paletteLabel: spec[1], label: function () { return this.name || spec[1]; },
+            oneditprepare: function () {
+                var node = this, generation = 0;
+                $('#node-input-model').attr('list', 'nova-model-list');
+                function refresh() {
+                    var id = $('#node-input-connection').val(), status = $('#nova-model-status'), current = ++generation;
+                    if (node._novaDiscovery) node._novaDiscovery.abort();
+                    $('#nova-model-list').empty();
+                    $('#node-input-model').off('input.nova');
+                    $('#nova-refresh').prop('disabled', false);
+                    var connection = RED.nodes.node(id);
+                    if (!connection || connection.changed) { status.text('Save and deploy the connection before browsing. You can enter a model identifier manually.'); return; }
+                    status.text('Loading models…'); $('#nova-refresh').prop('disabled', true);
+                    node._novaDiscovery = discover(id, 'models').done(function (data) {
+                        if (generation !== current) return;
+                        var models = data.models.filter(function (m) { return compatible(m, kind); });
+                        models.forEach(function (m) { $('<option>').val(m.id).text((m.name || m.id) + ' — ' + m.id + (m.capabilities ? ' (' + m.capabilities.join(', ') + ')' : '')).appendTo('#nova-model-list'); });
+                        function message() {
+                            var saved = $('#node-input-model').val();
+                            status.text(saved && !models.some(function (m) { return m.id === saved; }) ? 'This model was not found for this operation. Its identifier is preserved; verify access or choose another.' : models.length ? models.length + ' models available. Search or enter an identifier.' : 'No models found. Check key permissions or enter a model identifier manually.');
+                        }
+                        $('#node-input-model').off('input.nova').on('input.nova', message); message();
+                    }).fail(function (xhr) { if (generation === current && xhr.statusText !== 'abort') status.text(errorText(xhr)); }).always(function () { if (generation === current) $('#nova-refresh').prop('disabled', false); });
+                }
+                $('#nova-refresh').on('click', refresh);
+                $('#node-input-connection').on('change', refresh);
+                if (kind === 'models') {
+                    function operation() { var retrieve = $('#node-input-operation').val() === 'retrieve'; $('#nova-model-section').toggle(retrieve); $('#nova-advanced').toggle(!retrieve); }
+                    $('#node-input-operation').on('change', operation); operation();
+                }
+                if (kind !== 'providers') refresh();
+            },
+            oneditcancel: function () { if (this._novaDiscovery) this._novaDiscovery.abort(); },
+            oneditsave: function () { if (this._novaDiscovery) this._novaDiscovery.abort(); }
+        });
+    });
+}());
+
+</script>
+<script type="text/html" data-template-name="nova-connection">
+<div class="form-row"><label for="node-config-input-name">Name</label><input id="node-config-input-name" type="text" placeholder="My Nova account"></div>
+<div class="form-row"><label for="node-config-input-apiKey">API key</label><input id="node-config-input-apiKey" type="password" autocomplete="new-password"></div>
+<details><summary>Advanced connection settings</summary>
+<div class="form-row"><label for="node-config-input-baseUrl">API URL</label><input id="node-config-input-baseUrl" type="url"></div>
+<div class="form-row"><label for="node-config-input-configId">Routing ID</label><input id="node-config-input-configId" type="text"></div>
+<div class="form-row"><label for="node-config-input-timeout">Timeout (seconds)</label><input id="node-config-input-timeout" type="number" min="1" max="2147483"></div>
+</details><p>Save and deploy this connection before testing it or browsing models. Testing lists models without generating content.</p>
+<button type="button" class="red-ui-button" id="nova-test">Test connection</button><p id="nova-test-status" role="status" aria-live="polite"></p>
+</script>
+<script type="text/html" data-help-name="nova-connection"><p>Stores your Nova API key as a Node-RED password credential. The default API URL is https://api.nova.datalabrotterdam.nl/v1. Advanced routing selects a runtime configuration. The timeout is in seconds (default 120).</p><p>Save and deploy, then reopen to test. The test only lists models. Unsaved changes are not used by the test.</p></script>
+<script type="text/html" data-template-name="nova-chat">
+<div class="form-row"><label for="node-input-name">Name</label><input type="text" id="node-input-name" ></div>
+<h4>Connection</h4><div class="form-row"><label for="node-input-connection">Nova connection</label><input type="text" id="node-input-connection" ></div>
+<p class="form-tips">Save and deploy the connection to browse models.</p>
+
+<div id="nova-model-section"><h4>Model</h4><div class="form-row"><label for="node-input-model">Model</label><input type="text" id="node-input-model" ><div class="form-tips">Search discovered models or type a model identifier manually.</div></div><datalist id="nova-model-list"></datalist><button type="button" class="red-ui-button" id="nova-refresh">Refresh models</button><p id="nova-model-status" role="status" aria-live="polite"></p></div>
+<h4>Options</h4>
+
+<details id="nova-advanced"><summary>Advanced options</summary><div class="form-row"><label for="node-input-temperature">Creativity</label><input type="number" id="node-input-temperature" step="any"></div><div class="form-row"><label for="node-input-max_tokens">Token limit</label><input type="number" id="node-input-max_tokens" step="any"></div></details>
+<p class="form-tips">Send text or an array of messages; receive assistant content.</p>
+</script>
+<script type="text/html" data-help-name="nova-chat"><p>Send text or an array of messages; receive assistant content.</p><h3>Input</h3><p>Text or a messages array, such as [{"role":"user","content":"Hello"}].</p><h3>Output</h3><p>The useful result is in <code>msg.payload</code>. The complete response is in <code>msg.nova.response</code>, with <code>msg.nova.status</code> and <code>msg.nova.contentType</code>. Unrelated message properties are preserved.</p><p>Chat has no hidden memory. Send the complete conversation as a messages array to continue it. Tool-only replies return null; inspect the full response for tool calls.</p><h3>Example</h3><p>Inject (text: Hello) → this node → Debug. Import the examples from the Node-RED Examples menu.</p><h3>Advanced</h3><p><code>msg.nova.request</code> is an object of API options. Its fields override editor settings and fields inferred from payload (for example <code>{model: "your-model"}</code>). <code>msg.nova.configId</code> overrides connection routing. Streaming is unsupported. Failures go to Catch nodes; requests time out and are cancelled when nodes close. Requests are never automatically retried.</p></script>
+<script type="text/html" data-template-name="nova-response">
+<div class="form-row"><label for="node-input-name">Name</label><input type="text" id="node-input-name" ></div>
+<h4>Connection</h4><div class="form-row"><label for="node-input-connection">Nova connection</label><input type="text" id="node-input-connection" ></div>
+<p class="form-tips">Save and deploy the connection to browse models.</p>
+
+<div id="nova-model-section"><h4>Model</h4><div class="form-row"><label for="node-input-model">Model</label><input type="text" id="node-input-model" ><div class="form-tips">Search discovered models or type a model identifier manually.</div></div><datalist id="nova-model-list"></datalist><button type="button" class="red-ui-button" id="nova-refresh">Refresh models</button><p id="nova-model-status" role="status" aria-live="polite"></p></div>
+<h4>Options</h4>
+
+<details id="nova-advanced"><summary>Advanced options</summary><div class="form-row"><label for="node-input-temperature">Creativity</label><input type="number" id="node-input-temperature" step="any"></div></details>
+<p class="form-tips">Send text or input items; receive combined output text.</p>
+</script>
+<script type="text/html" data-help-name="nova-response"><p>Send text or input items; receive combined output text.</p><h3>Input</h3><p>Text or an input-items array.</p><h3>Output</h3><p>The useful result is in <code>msg.payload</code>. The complete response is in <code>msg.nova.response</code>, with <code>msg.nova.status</code> and <code>msg.nova.contentType</code>. Unrelated message properties are preserved.</p><p>A response without text returns an empty string. Structured output remains in the full response.</p><h3>Example</h3><p>Inject (text: Hello) → this node → Debug. Import the examples from the Node-RED Examples menu.</p><h3>Advanced</h3><p><code>msg.nova.request</code> is an object of API options. Its fields override editor settings and fields inferred from payload (for example <code>{model: "your-model"}</code>). <code>msg.nova.configId</code> overrides connection routing. Streaming is unsupported. Failures go to Catch nodes; requests time out and are cancelled when nodes close. Requests are never automatically retried.</p></script>
+<script type="text/html" data-template-name="nova-embeddings">
+<div class="form-row"><label for="node-input-name">Name</label><input type="text" id="node-input-name" ></div>
+<h4>Connection</h4><div class="form-row"><label for="node-input-connection">Nova connection</label><input type="text" id="node-input-connection" ></div>
+<p class="form-tips">Save and deploy the connection to browse models.</p>
+
+<div id="nova-model-section"><h4>Model</h4><div class="form-row"><label for="node-input-model">Model</label><input type="text" id="node-input-model" ><div class="form-tips">Search discovered models or type a model identifier manually.</div></div><datalist id="nova-model-list"></datalist><button type="button" class="red-ui-button" id="nova-refresh">Refresh models</button><p id="nova-model-status" role="status" aria-live="polite"></p></div>
+<h4>Options</h4>
+
+<details id="nova-advanced"><summary>Advanced options</summary><div class="form-row"><label for="node-input-dimensions">Dimensions</label><input type="number" id="node-input-dimensions" step="any"></div></details>
+<p class="form-tips">Turn text into lists of numbers for finding similar text.</p>
+</script>
+<script type="text/html" data-help-name="nova-embeddings"><p>Turn text into lists of numbers for finding similar text.</p><h3>Input</h3><p>Text or an array of strings.</p><h3>Output</h3><p>The useful result is in <code>msg.payload</code>. The complete response is in <code>msg.nova.response</code>, with <code>msg.nova.status</code> and <code>msg.nova.contentType</code>. Unrelated message properties are preserved.</p><p>Embeddings represent meaning as numbers. Compare these vectors to find documents with similar meaning. Output is an array of vectors.</p><h3>Example</h3><p>Inject (text: Hello) → this node → Debug. Import the examples from the Node-RED Examples menu.</p><h3>Advanced</h3><p><code>msg.nova.request</code> is an object of API options. Its fields override editor settings and fields inferred from payload (for example <code>{model: "your-model"}</code>). <code>msg.nova.configId</code> overrides connection routing. Streaming is unsupported. Failures go to Catch nodes; requests time out and are cancelled when nodes close. Requests are never automatically retried.</p></script>
+<script type="text/html" data-template-name="nova-image">
+<div class="form-row"><label for="node-input-name">Name</label><input type="text" id="node-input-name" ></div>
+<h4>Connection</h4><div class="form-row"><label for="node-input-connection">Nova connection</label><input type="text" id="node-input-connection" ></div>
+<p class="form-tips">Save and deploy the connection to browse models.</p>
+
+<div id="nova-model-section"><h4>Model</h4><div class="form-row"><label for="node-input-model">Model</label><input type="text" id="node-input-model" ><div class="form-tips">Search discovered models or type a model identifier manually.</div></div><datalist id="nova-model-list"></datalist><button type="button" class="red-ui-button" id="nova-refresh">Refresh models</button><p id="nova-model-status" role="status" aria-live="polite"></p></div>
+<h4>Options</h4>
+<div class="form-row"><label for="node-input-size">Image size</label><input type="text" id="node-input-size" ><div class="form-tips">Optional, for example 1024x1024; check model support.</div></div>
+<details id="nova-advanced"><summary>Advanced options</summary><div class="form-row"><label for="node-input-imageCount">Image count</label><input type="number" id="node-input-imageCount" step="any"></div></details>
+<p class="form-tips">Describe an image; receive image objects with URLs or encoded data.</p>
+</script>
+<script type="text/html" data-help-name="nova-image"><p>Describe an image; receive image objects with URLs or encoded data.</p><h3>Input</h3><p>Text in msg.payload.</p><h3>Output</h3><p>The useful result is in <code>msg.payload</code>. The complete response is in <code>msg.nova.response</code>, with <code>msg.nova.status</code> and <code>msg.nova.contentType</code>. Unrelated message properties are preserved.</p><h3>Example</h3><p>Inject (text: Hello) → this node → Debug. Import the examples from the Node-RED Examples menu.</p><h3>Advanced</h3><p><code>msg.nova.request</code> is an object of API options. Its fields override editor settings and fields inferred from payload (for example <code>{model: "your-model"}</code>). <code>msg.nova.configId</code> overrides connection routing. Streaming is unsupported. Failures go to Catch nodes; requests time out and are cancelled when nodes close. Requests are never automatically retried.</p></script>
+<script type="text/html" data-template-name="nova-transcription">
+<div class="form-row"><label for="node-input-name">Name</label><input type="text" id="node-input-name" ></div>
+<h4>Connection</h4><div class="form-row"><label for="node-input-connection">Nova connection</label><input type="text" id="node-input-connection" ></div>
+<p class="form-tips">Save and deploy the connection to browse models.</p>
+
+<div id="nova-model-section"><h4>Model</h4><div class="form-row"><label for="node-input-model">Model</label><input type="text" id="node-input-model" ><div class="form-tips">Search discovered models or type a model identifier manually.</div></div><datalist id="nova-model-list"></datalist><button type="button" class="red-ui-button" id="nova-refresh">Refresh models</button><p id="nova-model-status" role="status" aria-live="polite"></p></div>
+<h4>Options</h4>
+<div class="form-row"><label for="node-input-language">Language code</label><input type="text" id="node-input-language" ><div class="form-tips">Optional, for example nl or en.</div></div><div class="form-row"><label for="node-input-response_format">Output format</label><select id="node-input-response_format"><option value="">Provider default</option><option value="json">json</option><option value="text">text</option><option value="srt">srt</option><option value="verbose_json">verbose_json</option><option value="vtt">vtt</option></select></div>
+
+<p class="form-tips">Turn an audio Buffer into written text.</p>
+</script>
+<script type="text/html" data-help-name="nova-transcription"><p>Turn an audio Buffer into written text.</p><h3>Input</h3><p>Audio Buffer. Optional msg.filename and msg.mimetype describe the upload. File paths are never read.</p><h3>Output</h3><p>The useful result is in <code>msg.payload</code>. The complete response is in <code>msg.nova.response</code>, with <code>msg.nova.status</code> and <code>msg.nova.contentType</code>. Unrelated message properties are preserved.</p><h3>Example</h3><p>File in (single Buffer) → this node → Debug. Set the File in path to your audio file. Import the examples from the Node-RED Examples menu.</p><h3>Advanced</h3><p><code>msg.nova.request</code> is an object of API options. Its fields override editor settings and fields inferred from payload (for example <code>{model: "your-model"}</code>). <code>msg.nova.configId</code> overrides connection routing. Streaming is unsupported. Failures go to Catch nodes; requests time out and are cancelled when nodes close. Requests are never automatically retried.</p></script>
+<script type="text/html" data-template-name="nova-translation">
+<div class="form-row"><label for="node-input-name">Name</label><input type="text" id="node-input-name" ></div>
+<h4>Connection</h4><div class="form-row"><label for="node-input-connection">Nova connection</label><input type="text" id="node-input-connection" ></div>
+<p class="form-tips">Save and deploy the connection to browse models.</p>
+
+<div id="nova-model-section"><h4>Model</h4><div class="form-row"><label for="node-input-model">Model</label><input type="text" id="node-input-model" ><div class="form-tips">Search discovered models or type a model identifier manually.</div></div><datalist id="nova-model-list"></datalist><button type="button" class="red-ui-button" id="nova-refresh">Refresh models</button><p id="nova-model-status" role="status" aria-live="polite"></p></div>
+<h4>Options</h4>
+<div class="form-row"><label for="node-input-response_format">Output format</label><select id="node-input-response_format"><option value="">Provider default</option><option value="json">json</option><option value="text">text</option><option value="srt">srt</option><option value="verbose_json">verbose_json</option><option value="vtt">vtt</option></select></div>
+
+<p class="form-tips">Turn an audio Buffer into translated text.</p>
+</script>
+<script type="text/html" data-help-name="nova-translation"><p>Turn an audio Buffer into translated text.</p><h3>Input</h3><p>Audio Buffer. Optional msg.filename and msg.mimetype describe the upload. File paths are never read.</p><h3>Output</h3><p>The useful result is in <code>msg.payload</code>. The complete response is in <code>msg.nova.response</code>, with <code>msg.nova.status</code> and <code>msg.nova.contentType</code>. Unrelated message properties are preserved.</p><h3>Example</h3><p>File in (single Buffer) → this node → Debug. Set the File in path to your audio file. Import the examples from the Node-RED Examples menu.</p><h3>Advanced</h3><p><code>msg.nova.request</code> is an object of API options. Its fields override editor settings and fields inferred from payload (for example <code>{model: "your-model"}</code>). <code>msg.nova.configId</code> overrides connection routing. Streaming is unsupported. Failures go to Catch nodes; requests time out and are cancelled when nodes close. Requests are never automatically retried.</p></script>
+<script type="text/html" data-template-name="nova-speech">
+<div class="form-row"><label for="node-input-name">Name</label><input type="text" id="node-input-name" ></div>
+<h4>Connection</h4><div class="form-row"><label for="node-input-connection">Nova connection</label><input type="text" id="node-input-connection" ></div>
+<p class="form-tips">Save and deploy the connection to browse models.</p>
+
+<div id="nova-model-section"><h4>Model</h4><div class="form-row"><label for="node-input-model">Model</label><input type="text" id="node-input-model" ><div class="form-tips">Search discovered models or type a model identifier manually.</div></div><datalist id="nova-model-list"></datalist><button type="button" class="red-ui-button" id="nova-refresh">Refresh models</button><p id="nova-model-status" role="status" aria-live="polite"></p></div>
+<h4>Options</h4>
+<div class="form-row"><label for="node-input-voice">Voice</label><input type="text" id="node-input-voice" ><div class="form-tips">Some models require a voice. Run the Voices example with this speech model and copy a supported identifier here.</div></div><div class="form-row"><label for="node-input-response_format">Output format</label><select id="node-input-response_format"><option value="">Provider default</option><option value="mp3">mp3</option><option value="opus">opus</option><option value="aac">aac</option><option value="flac">flac</option><option value="wav">wav</option><option value="pcm">pcm</option></select></div>
+<details id="nova-advanced"><summary>Advanced options</summary><div class="form-row"><label for="node-input-speed">Speech speed</label><input type="number" id="node-input-speed" step="any"></div></details>
+<p class="form-tips">Turn text into an audio Buffer.</p>
+</script>
+<script type="text/html" data-help-name="nova-speech"><p>Turn text into an audio Buffer.</p><h3>Input</h3><p>Text in msg.payload.</p><h3>Output</h3><p>The useful result is in <code>msg.payload</code>. The complete response is in <code>msg.nova.response</code>, with <code>msg.nova.status</code> and <code>msg.nova.contentType</code>. Unrelated message properties are preserved.</p><h3>Example</h3><p>Inject (text: Hello) → this node → Debug. Import the examples from the Node-RED Examples menu.</p><h3>Advanced</h3><p><code>msg.nova.request</code> is an object of API options. Its fields override editor settings and fields inferred from payload (for example <code>{model: "your-model"}</code>). <code>msg.nova.configId</code> overrides connection routing. Streaming is unsupported. Failures go to Catch nodes; requests time out and are cancelled when nodes close. Requests are never automatically retried.</p></script>
+<script type="text/html" data-template-name="nova-speakers">
+<div class="form-row"><label for="node-input-name">Name</label><input type="text" id="node-input-name" ></div>
+<h4>Connection</h4><div class="form-row"><label for="node-input-connection">Nova connection</label><input type="text" id="node-input-connection" ></div>
+<p class="form-tips">Save and deploy the connection to browse models.</p>
+
+<div id="nova-model-section"><h4>Model</h4><div class="form-row"><label for="node-input-model">Model</label><input type="text" id="node-input-model" ><div class="form-tips">Search discovered models or type a model identifier manually.</div></div><datalist id="nova-model-list"></datalist><button type="button" class="red-ui-button" id="nova-refresh">Refresh models</button><p id="nova-model-status" role="status" aria-live="polite"></p></div>
+
+
+
+<p class="form-tips">Find who spoke when in an audio Buffer; receive speaker segments.</p>
+</script>
+<script type="text/html" data-help-name="nova-speakers"><p>Find who spoke when in an audio Buffer; receive speaker segments.</p><h3>Input</h3><p>Audio Buffer. Optional msg.filename and msg.mimetype describe the upload. File paths are never read.</p><h3>Output</h3><p>The useful result is in <code>msg.payload</code>. The complete response is in <code>msg.nova.response</code>, with <code>msg.nova.status</code> and <code>msg.nova.contentType</code>. Unrelated message properties are preserved.</p><p>Speaker identification (diarization) splits audio into segments showing who spoke when; labels do not identify people by name.</p><h3>Example</h3><p>File in (single Buffer) → this node → Debug. Set the File in path to your audio file. Import the examples from the Node-RED Examples menu.</p><h3>Advanced</h3><p><code>msg.nova.request</code> is an object of API options. Its fields override editor settings and fields inferred from payload (for example <code>{model: "your-model"}</code>). <code>msg.nova.configId</code> overrides connection routing. Streaming is unsupported. Failures go to Catch nodes; requests time out and are cancelled when nodes close. Requests are never automatically retried.</p></script>
+<script type="text/html" data-template-name="nova-models">
+<div class="form-row"><label for="node-input-name">Name</label><input type="text" id="node-input-name" ></div>
+<h4>Connection</h4><div class="form-row"><label for="node-input-connection">Nova connection</label><input type="text" id="node-input-connection" ></div>
+<p class="form-tips">Save and deploy the connection to browse models.</p>
+<div class="form-row"><label for="node-input-operation">Operation</label><select id="node-input-operation"><option value="list">List one page</option><option value="retrieve">Retrieve a model</option></select></div>
+<div id="nova-model-section"><h4>Model</h4><div class="form-row"><label for="node-input-model">Model</label><input type="text" id="node-input-model" ><div class="form-tips">Search discovered models or type a model identifier manually.</div></div><datalist id="nova-model-list"></datalist><button type="button" class="red-ui-button" id="nova-refresh">Refresh models</button><p id="nova-model-status" role="status" aria-live="polite"></p></div>
+<h4>Options</h4>
+
+<details id="nova-advanced"><summary>Advanced options</summary><div class="form-row"><label for="node-input-limit">Page size</label><input type="number" id="node-input-limit" step="any"></div><div class="form-row"><label for="node-input-after">After model ID</label><input type="text" id="node-input-after" ></div></details>
+<p class="form-tips">List one page of models or retrieve a model by identifier.</p>
+</script>
+<script type="text/html" data-help-name="nova-models"><p>List one page of models or retrieve a model by identifier.</p><h3>Input</h3><p>Any trigger message.</p><h3>Output</h3><p>The useful result is in <code>msg.payload</code>. The complete response is in <code>msg.nova.response</code>, with <code>msg.nova.status</code> and <code>msg.nova.contentType</code>. Unrelated message properties are preserved.</p><p>List returns one page. Set Page size and After model ID, or override limit and after in msg.nova.request. Read has_more and last_id from the full response to request the next page.</p><h3>Example</h3><p>Inject → this node → Debug. Import the examples from the Node-RED Examples menu.</p><h3>Advanced</h3><p><code>msg.nova.request</code> is an object of API options. Its fields override editor settings and fields inferred from payload (for example <code>{model: "your-model"}</code>). <code>msg.nova.configId</code> overrides connection routing. Streaming is unsupported. Failures go to Catch nodes; requests time out and are cancelled when nodes close. Requests are never automatically retried.</p></script>
+<script type="text/html" data-template-name="nova-providers">
+<div class="form-row"><label for="node-input-name">Name</label><input type="text" id="node-input-name" ></div>
+<h4>Connection</h4><div class="form-row"><label for="node-input-connection">Nova connection</label><input type="text" id="node-input-connection" ></div>
+<p class="form-tips">Save and deploy the connection to browse models.</p>
+
+
+
+
+
+<p class="form-tips">List available Nova providers.</p>
+</script>
+<script type="text/html" data-help-name="nova-providers"><p>List available Nova providers.</p><h3>Input</h3><p>Any trigger message.</p><h3>Output</h3><p>The useful result is in <code>msg.payload</code>. The complete response is in <code>msg.nova.response</code>, with <code>msg.nova.status</code> and <code>msg.nova.contentType</code>. Unrelated message properties are preserved.</p><h3>Example</h3><p>Inject → this node → Debug. Import the examples from the Node-RED Examples menu.</p><h3>Advanced</h3><p><code>msg.nova.request</code> is an object of API options. Its fields override editor settings and fields inferred from payload (for example <code>{model: "your-model"}</code>). <code>msg.nova.configId</code> overrides connection routing. Streaming is unsupported. Failures go to Catch nodes; requests time out and are cancelled when nodes close. Requests are never automatically retried.</p></script>
+<script type="text/html" data-template-name="nova-voices">
+<div class="form-row"><label for="node-input-name">Name</label><input type="text" id="node-input-name" ></div>
+<h4>Connection</h4><div class="form-row"><label for="node-input-connection">Nova connection</label><input type="text" id="node-input-connection" ></div>
+<p class="form-tips">Save and deploy the connection to browse models.</p>
+
+<div id="nova-model-section"><h4>Model</h4><div class="form-row"><label for="node-input-model">Model</label><input type="text" id="node-input-model" ><div class="form-tips">Search discovered models or type a model identifier manually.</div></div><datalist id="nova-model-list"></datalist><button type="button" class="red-ui-button" id="nova-refresh">Refresh models</button><p id="nova-model-status" role="status" aria-live="polite"></p></div>
+
+
+
+<p class="form-tips">List available preset voices for a speech model.</p>
+</script>
+<script type="text/html" data-help-name="nova-voices"><p>List available preset voices for a speech model.</p><h3>Input</h3><p>Any trigger message.</p><h3>Output</h3><p>The useful result is in <code>msg.payload</code>. The complete response is in <code>msg.nova.response</code>, with <code>msg.nova.status</code> and <code>msg.nova.contentType</code>. Unrelated message properties are preserved.</p><h3>Example</h3><p>Inject → this node → Debug. Import the examples from the Node-RED Examples menu.</p><h3>Advanced</h3><p><code>msg.nova.request</code> is an object of API options. Its fields override editor settings and fields inferred from payload (for example <code>{model: "your-model"}</code>). <code>msg.nova.configId</code> overrides connection routing. Streaming is unsupported. Failures go to Catch nodes; requests time out and are cancelled when nodes close. Requests are never automatically retried.</p></script>

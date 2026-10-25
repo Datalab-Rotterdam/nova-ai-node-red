@@ -1,0 +1,135 @@
+[
+  {
+    "id": "nova-example-07-generate-speech",
+    "type": "tab",
+    "label": "Nova: generate speech",
+    "disabled": false,
+    "info": "# generate speech\n\n1. Open the Nova node and select an existing Nova connection, or add your API key to the included connection. Save and deploy.\n2. Reopen the Nova node and choose a compatible model, then deploy again.\n3. Click Speak a greeting. Read Audio Buffer in the Debug sidebar.\n\nSome models require Voice: run 12-list-voices with the same model and copy a preset. File out can save the audio Buffer.\n\nThe Full Nova result debug node is disabled by default; enable it to inspect msg.nova.response, status, and contentType. Catch shows errors and next actions. Nothing runs automatically on deploy. No API key is included."
+  },
+  {
+    "id": "nova-example-07-generate-speech-connection",
+    "type": "nova-connection",
+    "name": "My Nova account",
+    "baseUrl": "https://api.nova.datalabrotterdam.nl/v1",
+    "timeout": 120,
+    "configId": ""
+  },
+  {
+    "id": "nova-example-07-generate-speech-guide",
+    "type": "comment",
+    "z": "nova-example-07-generate-speech",
+    "name": "Add connection → deploy → choose model if needed → deploy → click Inject. See flow Info for details.",
+    "info": "# generate speech\n\n1. Open the Nova node and select an existing Nova connection, or add your API key to the included connection. Save and deploy.\n2. Reopen the Nova node and choose a compatible model, then deploy again.\n3. Click Speak a greeting. Read Audio Buffer in the Debug sidebar.\n\nSome models require Voice: run 12-list-voices with the same model and copy a preset. File out can save the audio Buffer.\n\nThe Full Nova result debug node is disabled by default; enable it to inspect msg.nova.response, status, and contentType. Catch shows errors and next actions. Nothing runs automatically on deploy. No API key is included.",
+    "x": 520,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "nova-example-07-generate-speech-note",
+    "type": "comment",
+    "z": "nova-example-07-generate-speech",
+    "name": "Some models require Voice: run 12-list-voices with the same model and copy a preset. File out can save the audio Buffer.",
+    "x": 520,
+    "y": 110,
+    "wires": []
+  },
+  {
+    "id": "nova-example-07-generate-speech-inject",
+    "type": "inject",
+    "z": "nova-example-07-generate-speech",
+    "name": "Speak a greeting",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "payload": "Hello from Nova! Your Node-RED flow can now turn text into speech.",
+    "payloadType": "str",
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "x": 160,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-07-generate-speech-node"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-07-generate-speech-node",
+    "type": "nova-speech",
+    "z": "nova-example-07-generate-speech",
+    "name": "",
+    "connection": "nova-example-07-generate-speech-connection",
+    "model": "",
+    "voice": "",
+    "response_format": "",
+    "speed": "",
+    "x": 440,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-07-generate-speech-debug",
+        "nova-example-07-generate-speech-full"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-07-generate-speech-debug",
+    "type": "debug",
+    "z": "nova-example-07-generate-speech",
+    "name": "Audio Buffer",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 190,
+    "wires": []
+  },
+  {
+    "id": "nova-example-07-generate-speech-full",
+    "type": "debug",
+    "z": "nova-example-07-generate-speech",
+    "name": "Full Nova result (enable to inspect)",
+    "active": false,
+    "tosidebar": true,
+    "complete": "nova",
+    "targetType": "msg",
+    "x": 950,
+    "y": 250,
+    "wires": []
+  },
+  {
+    "id": "nova-example-07-generate-speech-catch",
+    "type": "catch",
+    "z": "nova-example-07-generate-speech",
+    "name": "Nova errors",
+    "scope": [
+      "nova-example-07-generate-speech-node"
+    ],
+    "uncaught": false,
+    "x": 640,
+    "y": 330,
+    "wires": [
+      [
+        "nova-example-07-generate-speech-error"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-07-generate-speech-error",
+    "type": "debug",
+    "z": "nova-example-07-generate-speech",
+    "name": "Error and next action",
+    "active": true,
+    "tosidebar": true,
+    "complete": "error.message",
+    "targetType": "msg",
+    "x": 910,
+    "y": 330,
+    "wires": []
+  }
+]

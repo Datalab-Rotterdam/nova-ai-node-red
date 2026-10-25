@@ -1,0 +1,134 @@
+[
+  {
+    "id": "nova-example-05-generate-image",
+    "type": "tab",
+    "label": "Nova: generate image",
+    "disabled": false,
+    "info": "# generate image\n\n1. Open the Nova node and select an existing Nova connection, or add your API key to the included connection. Save and deploy.\n2. Reopen the Nova node and choose a compatible model, then deploy again.\n3. Click Generate a canal image. Read Image objects in the Debug sidebar.\n\nResult contains image URLs or base64 data. Set Image size only when supported by your model.\n\nThe Full Nova result debug node is disabled by default; enable it to inspect msg.nova.response, status, and contentType. Catch shows errors and next actions. Nothing runs automatically on deploy. No API key is included."
+  },
+  {
+    "id": "nova-example-05-generate-image-connection",
+    "type": "nova-connection",
+    "name": "My Nova account",
+    "baseUrl": "https://api.nova.datalabrotterdam.nl/v1",
+    "timeout": 120,
+    "configId": ""
+  },
+  {
+    "id": "nova-example-05-generate-image-guide",
+    "type": "comment",
+    "z": "nova-example-05-generate-image",
+    "name": "Add connection → deploy → choose model if needed → deploy → click Inject. See flow Info for details.",
+    "info": "# generate image\n\n1. Open the Nova node and select an existing Nova connection, or add your API key to the included connection. Save and deploy.\n2. Reopen the Nova node and choose a compatible model, then deploy again.\n3. Click Generate a canal image. Read Image objects in the Debug sidebar.\n\nResult contains image URLs or base64 data. Set Image size only when supported by your model.\n\nThe Full Nova result debug node is disabled by default; enable it to inspect msg.nova.response, status, and contentType. Catch shows errors and next actions. Nothing runs automatically on deploy. No API key is included.",
+    "x": 520,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "nova-example-05-generate-image-note",
+    "type": "comment",
+    "z": "nova-example-05-generate-image",
+    "name": "Result contains image URLs or base64 data. Set Image size only when supported by your model.",
+    "x": 520,
+    "y": 110,
+    "wires": []
+  },
+  {
+    "id": "nova-example-05-generate-image-inject",
+    "type": "inject",
+    "z": "nova-example-05-generate-image",
+    "name": "Generate a canal image",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "payload": "A cheerful watercolor of bicycles beside a Rotterdam canal, soft morning light.",
+    "payloadType": "str",
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "x": 160,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-05-generate-image-node"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-05-generate-image-node",
+    "type": "nova-image",
+    "z": "nova-example-05-generate-image",
+    "name": "",
+    "connection": "nova-example-05-generate-image-connection",
+    "model": "",
+    "size": "",
+    "imageCount": 1,
+    "x": 440,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-05-generate-image-debug",
+        "nova-example-05-generate-image-full"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-05-generate-image-debug",
+    "type": "debug",
+    "z": "nova-example-05-generate-image",
+    "name": "Image objects",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 190,
+    "wires": []
+  },
+  {
+    "id": "nova-example-05-generate-image-full",
+    "type": "debug",
+    "z": "nova-example-05-generate-image",
+    "name": "Full Nova result (enable to inspect)",
+    "active": false,
+    "tosidebar": true,
+    "complete": "nova",
+    "targetType": "msg",
+    "x": 950,
+    "y": 250,
+    "wires": []
+  },
+  {
+    "id": "nova-example-05-generate-image-catch",
+    "type": "catch",
+    "z": "nova-example-05-generate-image",
+    "name": "Nova errors",
+    "scope": [
+      "nova-example-05-generate-image-node"
+    ],
+    "uncaught": false,
+    "x": 640,
+    "y": 330,
+    "wires": [
+      [
+        "nova-example-05-generate-image-error"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-05-generate-image-error",
+    "type": "debug",
+    "z": "nova-example-05-generate-image",
+    "name": "Error and next action",
+    "active": true,
+    "tosidebar": true,
+    "complete": "error.message",
+    "targetType": "msg",
+    "x": 910,
+    "y": 330,
+    "wires": []
+  }
+]

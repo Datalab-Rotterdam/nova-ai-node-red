@@ -1,0 +1,132 @@
+[
+  {
+    "id": "nova-example-03-generate-response",
+    "type": "tab",
+    "label": "Nova: generate response",
+    "disabled": false,
+    "info": "# generate response\n\n1. Open the Nova node and select an existing Nova connection, or add your API key to the included connection. Save and deploy.\n2. Reopen the Nova node and choose a compatible model, then deploy again.\n3. Click Ask for a summary. Read Response text in the Debug sidebar.\n\nText goes in; combined output text comes out. Structured output remains in the full result.\n\nThe Full Nova result debug node is disabled by default; enable it to inspect msg.nova.response, status, and contentType. Catch shows errors and next actions. Nothing runs automatically on deploy. No API key is included."
+  },
+  {
+    "id": "nova-example-03-generate-response-connection",
+    "type": "nova-connection",
+    "name": "My Nova account",
+    "baseUrl": "https://api.nova.datalabrotterdam.nl/v1",
+    "timeout": 120,
+    "configId": ""
+  },
+  {
+    "id": "nova-example-03-generate-response-guide",
+    "type": "comment",
+    "z": "nova-example-03-generate-response",
+    "name": "Add connection → deploy → choose model if needed → deploy → click Inject. See flow Info for details.",
+    "info": "# generate response\n\n1. Open the Nova node and select an existing Nova connection, or add your API key to the included connection. Save and deploy.\n2. Reopen the Nova node and choose a compatible model, then deploy again.\n3. Click Ask for a summary. Read Response text in the Debug sidebar.\n\nText goes in; combined output text comes out. Structured output remains in the full result.\n\nThe Full Nova result debug node is disabled by default; enable it to inspect msg.nova.response, status, and contentType. Catch shows errors and next actions. Nothing runs automatically on deploy. No API key is included.",
+    "x": 520,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "nova-example-03-generate-response-note",
+    "type": "comment",
+    "z": "nova-example-03-generate-response",
+    "name": "Text goes in; combined output text comes out. Structured output remains in the full result.",
+    "x": 520,
+    "y": 110,
+    "wires": []
+  },
+  {
+    "id": "nova-example-03-generate-response-inject",
+    "type": "inject",
+    "z": "nova-example-03-generate-response",
+    "name": "Ask for a summary",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "payload": "Explain how a wind turbine makes electricity in two simple sentences.",
+    "payloadType": "str",
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "x": 160,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-03-generate-response-node"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-03-generate-response-node",
+    "type": "nova-response",
+    "z": "nova-example-03-generate-response",
+    "name": "",
+    "connection": "nova-example-03-generate-response-connection",
+    "model": "",
+    "x": 440,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-03-generate-response-debug",
+        "nova-example-03-generate-response-full"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-03-generate-response-debug",
+    "type": "debug",
+    "z": "nova-example-03-generate-response",
+    "name": "Response text",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 190,
+    "wires": []
+  },
+  {
+    "id": "nova-example-03-generate-response-full",
+    "type": "debug",
+    "z": "nova-example-03-generate-response",
+    "name": "Full Nova result (enable to inspect)",
+    "active": false,
+    "tosidebar": true,
+    "complete": "nova",
+    "targetType": "msg",
+    "x": 950,
+    "y": 250,
+    "wires": []
+  },
+  {
+    "id": "nova-example-03-generate-response-catch",
+    "type": "catch",
+    "z": "nova-example-03-generate-response",
+    "name": "Nova errors",
+    "scope": [
+      "nova-example-03-generate-response-node"
+    ],
+    "uncaught": false,
+    "x": 640,
+    "y": 330,
+    "wires": [
+      [
+        "nova-example-03-generate-response-error"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-03-generate-response-error",
+    "type": "debug",
+    "z": "nova-example-03-generate-response",
+    "name": "Error and next action",
+    "active": true,
+    "tosidebar": true,
+    "complete": "error.message",
+    "targetType": "msg",
+    "x": 910,
+    "y": 330,
+    "wires": []
+  }
+]

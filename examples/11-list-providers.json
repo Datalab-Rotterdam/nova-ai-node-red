@@ -1,0 +1,131 @@
+[
+  {
+    "id": "nova-example-11-list-providers",
+    "type": "tab",
+    "label": "Nova: list providers",
+    "disabled": false,
+    "info": "# list providers\n\n1. Open the Nova node and select an existing Nova connection, or add your API key to the included connection. Save and deploy.\n2. This operation does not require a model.\n3. Click List providers. Read Available providers in the Debug sidebar.\n\nOnly a Nova connection is required. Inspect the provider list in Debug.\n\nThe Full Nova result debug node is disabled by default; enable it to inspect msg.nova.response, status, and contentType. Catch shows errors and next actions. Nothing runs automatically on deploy. No API key is included."
+  },
+  {
+    "id": "nova-example-11-list-providers-connection",
+    "type": "nova-connection",
+    "name": "My Nova account",
+    "baseUrl": "https://api.nova.datalabrotterdam.nl/v1",
+    "timeout": 120,
+    "configId": ""
+  },
+  {
+    "id": "nova-example-11-list-providers-guide",
+    "type": "comment",
+    "z": "nova-example-11-list-providers",
+    "name": "Add connection → deploy → choose model if needed → deploy → click Inject. See flow Info for details.",
+    "info": "# list providers\n\n1. Open the Nova node and select an existing Nova connection, or add your API key to the included connection. Save and deploy.\n2. This operation does not require a model.\n3. Click List providers. Read Available providers in the Debug sidebar.\n\nOnly a Nova connection is required. Inspect the provider list in Debug.\n\nThe Full Nova result debug node is disabled by default; enable it to inspect msg.nova.response, status, and contentType. Catch shows errors and next actions. Nothing runs automatically on deploy. No API key is included.",
+    "x": 520,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "nova-example-11-list-providers-note",
+    "type": "comment",
+    "z": "nova-example-11-list-providers",
+    "name": "Only a Nova connection is required. Inspect the provider list in Debug.",
+    "x": 520,
+    "y": 110,
+    "wires": []
+  },
+  {
+    "id": "nova-example-11-list-providers-inject",
+    "type": "inject",
+    "z": "nova-example-11-list-providers",
+    "name": "List providers",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "payload": "",
+    "payloadType": "date",
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "x": 160,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-11-list-providers-node"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-11-list-providers-node",
+    "type": "nova-providers",
+    "z": "nova-example-11-list-providers",
+    "name": "",
+    "connection": "nova-example-11-list-providers-connection",
+    "x": 440,
+    "y": 190,
+    "wires": [
+      [
+        "nova-example-11-list-providers-debug",
+        "nova-example-11-list-providers-full"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-11-list-providers-debug",
+    "type": "debug",
+    "z": "nova-example-11-list-providers",
+    "name": "Available providers",
+    "active": true,
+    "tosidebar": true,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 900,
+    "y": 190,
+    "wires": []
+  },
+  {
+    "id": "nova-example-11-list-providers-full",
+    "type": "debug",
+    "z": "nova-example-11-list-providers",
+    "name": "Full Nova result (enable to inspect)",
+    "active": false,
+    "tosidebar": true,
+    "complete": "nova",
+    "targetType": "msg",
+    "x": 950,
+    "y": 250,
+    "wires": []
+  },
+  {
+    "id": "nova-example-11-list-providers-catch",
+    "type": "catch",
+    "z": "nova-example-11-list-providers",
+    "name": "Nova errors",
+    "scope": [
+      "nova-example-11-list-providers-node"
+    ],
+    "uncaught": false,
+    "x": 640,
+    "y": 330,
+    "wires": [
+      [
+        "nova-example-11-list-providers-error"
+      ]
+    ]
+  },
+  {
+    "id": "nova-example-11-list-providers-error",
+    "type": "debug",
+    "z": "nova-example-11-list-providers",
+    "name": "Error and next action",
+    "active": true,
+    "tosidebar": true,
+    "complete": "error.message",
+    "targetType": "msg",
+    "x": 910,
+    "y": 330,
+    "wires": []
+  }
+]
