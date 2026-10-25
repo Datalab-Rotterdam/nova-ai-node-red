@@ -4,10 +4,10 @@ Connect to Nova AI, choose a model, and build flows for chat, text, images, embe
 
 ## Install
 
-Install a published release through **Manage palette** by searching for `@datalabrotterdam/node-red-nova-ai`, or run in your Node-RED user directory (usually `~/.node-red`):
+Install a published release through **Manage palette** by searching for `@datalabrotterdam/nova-ai-node-red`, or run in your Node-RED user directory (usually `~/.node-red`):
 
 ```sh
-npm install @datalabrotterdam/node-red-nova-ai
+npm install @datalabrotterdam/nova-ai-node-red
 ```
 
 If an npm release is not available yet, install the source from GitHub:
@@ -19,14 +19,14 @@ npm install git+https://github.com/Datalab-Rotterdam/nova-ai-node-red.git
 For local development, install your checkout instead:
 
 ```sh
-npm install /absolute/path/to/node-red-nova-ai
+npm install /absolute/path/to/nova-ai-node-red
 ```
 
 Restart Node-RED after installing.
 
 ## Your first reply
 
-1. Choose **Import → Examples → @datalabrotterdam/node-red-nova-ai → 01-first-chat**.
+1. Choose **Import → Examples → @datalabrotterdam/nova-ai-node-red → 01-first-chat**.
 2. Open **Chat**, add a **Nova connection**, enter your API key, and save both dialogs. The default URL is `https://api.nova.datalabrotterdam.nl/v1`.
 3. Deploy to make the connection available to discovery. Node-RED may warn that the Chat model is still missing; deploy anyway. No request is made until you trigger the node.
 4. Reopen Chat, press **Refresh models**, and search the Model field. Model names, identifiers and available capabilities appear in the suggestions. You can also type an identifier manually.
@@ -36,7 +36,7 @@ To test your key, reopen the saved and deployed connection and press **Test conn
 
 ## Example flows
 
-Find all twelve flows under **Import → Examples → @datalabrotterdam/node-red-nova-ai**. Each runs only when you click Inject, includes Catch/error output, and works without a Function node. Select your existing Nova connection to reuse your key, or configure the included connection. Choose a compatible model where needed.
+Find all twelve flows under **Import → Examples → @datalabrotterdam/nova-ai-node-red**. Each runs only when you click Inject, includes Catch/error output, and works without a Function node. Select your existing Nova connection to reuse your key, or configure the included connection. Choose a compatible model where needed.
 
 | Example | What to try |
 | --- | --- |
@@ -141,4 +141,6 @@ On a push to `main`, semantic-release analyzes conventional commit messages, pub
 
 The release job references the organization's existing `NPM_TOKEN` secret through `NPM_TOKEN` and `NODE_AUTH_TOKEN`, matching the CLI's token fallback. It also grants the release job `id-token: write` and enables provenance for npm trusted publishing. No local npm login or copied token is needed. If publication fails, check that the organization secret is available to this repository and its npm token can publish under `@datalabrotterdam`. Trusted publishing additionally requires npm's trusted-publisher configuration for this exact repository and `ci.yml` workflow; the GitHub permission alone does not configure that trust. Do not put tokens in source files.
 
-Before publishing, validate all operations with an authorized Nova key, including response and diarization schemas. Inspect `npm pack --dry-run` and confirm scope ownership. After npm publication succeeds, submit `@datalabrotterdam/node-red-nova-ai` at the [Node-RED Flow Library](https://flows.nodered.org/add/node). The `node-red` keyword, node registration, and examples directory are already included. The catalog is a separate submission; a GitHub push alone does not add a package there.
+If npm stages the upload instead of making the version immediately installable, a maintainer must approve it on npm with 2FA. A successful CI job and a public `0.0.0-stage` placeholder do not mean the real version is available yet. Check the package's npm version before submitting it to the catalog.
+
+Before publishing, validate all operations with an authorized Nova key, including response and diarization schemas. Inspect `npm pack --dry-run` and confirm scope ownership. After npm publication succeeds, submit `@datalabrotterdam/nova-ai-node-red` at the [Node-RED Flow Library](https://flows.nodered.org/add/node). The `node-red` keyword, node registration, and examples directory are already included. The catalog is a separate submission; a GitHub push alone does not add a package there.
