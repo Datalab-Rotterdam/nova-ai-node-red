@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/Datalab-Rotterdam/nova-ai-node-red/compare/v1.1.0...v1.2.0) (2026-10-25)
+
+
+### Features
+
+* use the official Nova Node.js SDK ([8707ce8](https://github.com/Datalab-Rotterdam/nova-ai-node-red/commit/8707ce83e017b17ea86633ec82831872d2136040))
+
 # [1.1.0](https://github.com/Datalab-Rotterdam/nova-ai-node-red/compare/v1.0.1...v1.1.0) (2026-10-25)
 
 
