@@ -37,37 +37,86 @@ async function request(connection, path, options = {}) {
     connection.owner?.pending.add(controller);
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeout * 1000);
-    const headers = { Authorization: `Bearer ${connection.credentials.apiKey}`, Accept: '*/*' };
     const configId = options.configId ?? connection.configId;
-    if (configId) headers['x-config-id'] = String(configId);
-    let body = options.body;
-    if (body && !(body instanceof FormData)) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(body); }
+    let lastResponse;
     try {
         if (connection.closed) fail('Nova connection is closing. Deploy the flow again.');
-        const response = await fetch(url, { method: body ? 'POST' : 'GET', headers, body, signal: controller.signal, redirect: 'error' });
-        if (!response.ok) {
-            let detail = '';
-            if ([400, 422].includes(response.status)) detail = validationDetail(await response.text(), connection.credentials.apiKey);
-            else await response.body?.cancel();
-            const error = new Error(apiError(response.status, detail, path.split('?')[0] === '/audio/speech'));
-            error.status = response.status;
-            throw error;
-        }
-        const contentType = response.headers.get('content-type') || '';
+        const { NovaAI } = await import('@datalabrotterdam/nova-sdk');
+        const sdk = new NovaAI({ apiKey: connection.credentials.apiKey, baseUrl: connection.baseUrl || DEFAULT_URL, fetch: async (input, init = {}) => {
+            const headers = new Headers(init.headers || {});
+            if (configId && !headers.has('x-config-id')) headers.set('x-config-id', String(configId));
+            const signals = [controller.signal, init.signal].filter(Boolean);
+            const signal = signals.length > 1 ? AbortSignal.any(signals) : signals[0];
+            const response = await fetch(input, { ...init, headers, signal, redirect: 'error' });
+            lastResponse = response;
+            return response;
+        } });
+        const body = options.body;
+        const sdkOptions = { configId, signal: controller.signal };
+        const query = new URL(url).searchParams;
         let data;
-        if (options.binary) {
-            if (!/^(audio\/|application\/octet-stream)/i.test(contentType)) fail('Nova did not return audio. Check the speech model and format.');
-            data = Buffer.from(await response.arrayBuffer());
-        } else if (/\bjson\b/i.test(contentType)) {
-            try { data = await response.json(); } catch { fail('Nova returned invalid JSON. Check the server URL or try again.'); }
-        } else if (options.text) data = await response.text();
-        else fail('Nova returned an unexpected content type. Check the connection URL and model.');
-        return { response: data, status: response.status, contentType };
+        if (path.startsWith('/models?')) data = await sdk.models.list({ limit: query.has('limit') ? Number(query.get('limit')) : undefined, after: query.get('after') || undefined });
+        else if (path === '/models' && !body) data = await sdk.models.list();
+        else if (path === '/providers' && !body) data = await sdk.providers.list();
+        else if (path === '/audio/voices' && !body) data = await sdk.audio.voices.list(sdkOptions);
+        else if (path === '/chat/completions') data = await sdk.chat.completions.create(body, sdkOptions);
+        else if (path === '/embeddings') data = await sdk.embeddings.create(body, sdkOptions);
+        else if (path === '/images/generations') data = await sdk.images.generations.create(body, sdkOptions);
+        else if (path === '/audio/transcriptions') data = await sdk.audio.transcriptions.create(audioRequest(body), sdkOptions);
+        else if (path === '/audio/translations') data = await sdk.audio.translations.create(audioRequest(body), sdkOptions);
+        else if (path === '/audio/speech') data = await sdk.audio.speech.create(body, sdkOptions);
+        else {
+            // The SDK does not yet expose Responses, diarization, or model retrieval helpers.
+            const headers = new Headers({ Authorization: `Bearer ${connection.credentials.apiKey}`, Accept: options.binary ? 'audio/*, application/octet-stream' : '*/*' });
+            if (configId) headers.set('x-config-id', String(configId));
+            let rawBody = body;
+            if (rawBody && !(rawBody instanceof FormData)) { headers.set('Content-Type', 'application/json'); rawBody = JSON.stringify(rawBody); }
+            const response = await sdk.fetch(url, { method: rawBody ? 'POST' : 'GET', headers, body: rawBody, signal: controller.signal, redirect: 'error' });
+            lastResponse = response;
+            if (!response.ok) {
+                let detail = '';
+                if ([400, 422].includes(response.status)) detail = validationDetail(await response.text(), connection.credentials.apiKey);
+                else await response.body?.cancel();
+                const error = new Error(apiError(response.status, detail, path.split('?')[0] === '/audio/speech'));
+                error.status = response.status;
+                throw error;
+            }
+            const contentType = response.headers.get('content-type') || '';
+            if (options.binary) {
+                if (!/^(audio\/|application\/octet-stream)/i.test(contentType)) fail('Nova did not return audio. Check the speech model and format.');
+                data = Buffer.from(await response.arrayBuffer());
+            } else if (/\bjson\b/i.test(contentType)) {
+                try { data = await response.json(); } catch { fail('Nova returned invalid JSON. Check the server URL or try again.'); }
+            } else if (options.text) data = await response.text();
+            else fail('Nova returned an unexpected content type. Check the connection URL and model.');
+        }
+        const contentType = lastResponse?.headers.get('content-type') || '';
+        if (/\bjson\b/i.test(contentType) && typeof data === 'string') fail('Nova returned invalid JSON. Check the server URL or try again.');
+        if (!options.binary && !options.text && !/\bjson\b/i.test(contentType)) fail('Nova returned an unexpected content type. Check the connection URL and model.');
+        if (options.binary && data instanceof Blob) data = Buffer.from(await data.arrayBuffer());
+        if (options.binary && !/^(audio\/|application\/octet-stream)/i.test(contentType)) fail('Nova did not return audio. Check the speech model and format.');
+        if (options.text && typeof data !== 'string') fail('Nova returned an unexpected content type. Check the connection URL and model.');
+        return { response: data, status: lastResponse?.status || 200, contentType };
     } catch (error) {
         if (controller.signal.aborted) fail(timedOut ? 'Nova timed out. Increase the connection timeout or try a faster model.' : 'Nova request was cancelled because the node closed.');
+        if (error?.name === 'NovaAIError') {
+            const detail = [400, 422].includes(error.status) ? validationDetail(JSON.stringify(error.body), connection.credentials.apiKey) : '';
+            const wrapped = new Error(apiError(error.status, detail, path.split('?')[0] === '/audio/speech'));
+            wrapped.status = error.status;
+            throw wrapped;
+        }
         if (error instanceof TypeError) fail('Cannot reach Nova. Check the connection URL and network.');
         throw error;
     } finally { clearTimeout(timer); connection.pending.delete(controller); connection.owner?.pending.delete(controller); }
+}
+function audioRequest(form) {
+    const result = {};
+    for (const [key, value] of form.entries()) {
+        if (key === 'file') result.file = value;
+        else if (key === 'filename') result.filename = value;
+        else result[key] = value;
+    }
+    return result;
 }
 const paths = { chat: '/chat/completions', response: '/responses', embeddings: '/embeddings', image: '/images/generations', transcription: '/audio/transcriptions', translation: '/audio/translations', speech: '/audio/speech', speakers: '/audio/diarization', models: '/models', providers: '/providers', voices: '/audio/voices' };
 const uploads = ['transcription', 'translation', 'speakers'];
